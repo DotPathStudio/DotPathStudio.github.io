@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Sudoku Generator + kopiuj obraz</title>
+<title>Sudoku Generator – losowe plansze</title>
 <style>
   body {
     font-family: Arial, sans-serif;
@@ -30,7 +30,7 @@
 </head>
 <body>
 
-<h1>Sudoku 6x6 i 9x9 – Generator i kopiuj obraz</h1>
+<h1>Sudoku 6x6 i 9x9 – Losowy Generator</h1>
 
 <div>
   <label for="size">Rozmiar:</label>
@@ -59,220 +59,167 @@
 <canvas id="canvas" width="400" height="440"></canvas>
 
 <script>
-  // Przykładowe dane plansz 6x6 i 9x9, easy i medium (możesz rozbudować)
-  const puzzles = {
-    6: {
-      easy: {
-        board: [
-          ['5', '', '', '3', '', ''],
-          ['', '', '4', '', '', '6'],
-          ['', '2', '', '', '5', ''],
-          ['', '5', '', '', '1', ''],
-          ['3', '', '', '6', '', ''],
-          ['', '', '6', '', '', '2']
-        ],
-        solution: [
-          ['5', '1', '6', '3', '2', '4'],
-          ['2', '3', '4', '1', '7', '6'],
-          ['6', '2', '1', '4', '5', '3'],
-          ['4', '5', '3', '2', '1', '7'],
-          ['3', '6', '7', '6', '4', '5'],
-          ['1', '4', '6', '5', '3', '2']
-        ]
-      },
-      medium: {
-        board: [
-          ['', '6', '', '', '2', ''],
-          ['3', '', '', '6', '', ''],
-          ['', '', '2', '', '', '4'],
-          ['5', '', '', '3', '', ''],
-          ['', '', '4', '', '', '6'],
-          ['', '3', '', '', '5', '']
-        ],
-        solution: [
-          ['4', '6', '5', '1', '2', '3'],
-          ['3', '1', '7', '6', '4', '2'],
-          ['6', '5', '2', '7', '3', '4'],
-          ['5', '2', '6', '3', '1', '7'],
-          ['1', '7', '4', '2', '6', '5'],
-          ['2', '3', '1', '4', '5', '6']
-        ]
-      }
-    },
-    9: {
-      easy: {
-        board: [
-          ['5','3','','','7','','','',''],
-          ['6','','','1','9','5','','',''],
-          ['','9','8','','','','','6',''],
-          ['8','','','','6','','','','3'],
-          ['4','','','8','','3','','','1'],
-          ['7','','','','2','','','','6'],
-          ['','6','','','','','2','8',''],
-          ['','','','4','1','9','','','5'],
-          ['','','','','8','','','7','9']
-        ],
-        solution: [
-          ['5','3','4','6','7','8','9','1','2'],
-          ['6','7','2','1','9','5','3','4','8'],
-          ['1','9','8','3','4','2','5','6','7'],
-          ['8','5','9','7','6','1','4','2','3'],
-          ['4','2','6','8','5','3','7','9','1'],
-          ['7','1','3','9','2','4','8','5','6'],
-          ['9','6','1','5','3','7','2','8','4'],
-          ['2','8','7','4','1','9','6','3','5'],
-          ['3','4','5','2','8','6','1','7','9']
-        ]
-      },
-      medium: {
-        board: [
-          ['','','','','','3','','',''],
-          ['5','3','','','','','','','9'],
-          ['','','','7','6','','','4',''],
-          ['','','','9','','','','','2'],
-          ['','','7','','','5','1','',''],
-          ['6','','','','','','','',''],
-          ['','6','','','8','','','',''],
-          ['','7','','','','','','','6'],
-          ['','','','','','2','','','']
-        ],
-        solution: [
-          ['7','8','1','2','4','3','9','5','6'],
-          ['5','3','4','1','7','6','2','8','9'],
-          ['2','9','6','7','5','8','1','4','3'],
-          ['1','4','3','9','6','7','5','2','8'],
-          ['9','2','7','8','1','5','6','3','4'],
-          ['6','5','8','3','9','4','7','1','2'],
-          ['4','6','9','5','8','1','3','7','2'],
-          ['3','7','2','4','9','1','8','6','5'],
-          ['8','1','5','6','2','7','4','9','3']
-        ]
+function shuffle(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+
+function generateFullBoard(size) {
+  const board = Array.from({ length: size }, () => Array(size).fill(''));
+  const isSafe = (r, c, n) => {
+    for (let i = 0; i < size; i++) {
+      if (board[r][i] == n || board[i][c] == n) return false;
+    }
+    const blockSize = size === 9 ? 3 : 2;
+    const startRow = r - (r % blockSize);
+    const startCol = c - (c % blockSize);
+    for (let i = 0; i < blockSize; i++) {
+      for (let j = 0; j < blockSize; j++) {
+        if (board[startRow + i][startCol + j] == n) return false;
       }
     }
+    return true;
   };
 
-  const canvas = document.getElementById('canvas');
-  const ctx = canvas.getContext('2d');
-
-  let currentBoard = null;
-  let currentSolution = null;
-  let currentSize = 9;
-  let currentDifficulty = 'easy';
-
-  function capitalize(s) {
-    return s.charAt(0).toUpperCase() + s.slice(1);
-  }
-
-  function drawSudoku(name, board, solution, size, showSolution = false) {
-    const cellSize = size === 9 ? 40 : 50;
-    const offsetX = 20;
-    const offsetY = 80;
-    canvas.width = offsetX * 2 + cellSize * size;
-    canvas.height = offsetY + cellSize * size + 60;
-
-    // Czyścimy
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Napis na górze
-    ctx.font = "bold 20px Arial";
-    ctx.fillStyle = "black";
-    ctx.textAlign = "left";
-    ctx.fillText(name, offsetX, 40);
-
-    // Tło planszy białe
-    ctx.fillStyle = "white";
-    ctx.fillRect(offsetX, offsetY, cellSize*size, cellSize*size);
-
-    // Siatka i pogrubienia bloków
-    const blockRowSize = size === 9 ? 3 : 2;
-    const blockColSize = size === 9 ? 3 : 3;
-
-    for(let r=0; r <= size; r++) {
-      ctx.lineWidth = (r % blockRowSize === 0) ? 3 : 1;
-      ctx.beginPath();
-      ctx.moveTo(offsetX, offsetY + r*cellSize);
-      ctx.lineTo(offsetX + cellSize*size, offsetY + r*cellSize);
-      ctx.stroke();
-    }
-    for(let c=0; c <= size; c++) {
-      ctx.lineWidth = (c % blockColSize === 0) ? 3 : 1;
-      ctx.beginPath();
-      ctx.moveTo(offsetX + c*cellSize, offsetY);
-      ctx.lineTo(offsetX + c*cellSize, offsetY + cellSize*size);
-      ctx.stroke();
-    }
-
-    // Wpisujemy cyfry (plansza lub rozwiązanie)
-    ctx.font = size === 9 ? "bold 24px Arial" : "bold 28px Arial";
-    ctx.fillStyle = "black";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-
-    for(let r=0; r < size; r++) {
-      for(let c=0; c < size; c++) {
-        let val = showSolution ? solution[r][c] : board[r][c];
-        if(val !== '') {
-          ctx.fillText(val, offsetX + c*cellSize + cellSize/2, offsetY + r*cellSize + cellSize/2);
-        }
+  const fill = (r, c) => {
+    if (r === size) return true;
+    const [nextR, nextC] = c === size - 1 ? [r + 1, 0] : [r, c + 1];
+    const numbers = shuffle([...Array(size).keys()].map(x => (x + 1).toString()));
+    for (let num of numbers) {
+      if (isSafe(r, c, num)) {
+        board[r][c] = num;
+        if (fill(nextR, nextC)) return true;
+        board[r][c] = '';
       }
     }
+    return false;
+  };
 
-    // Napis pod planszą
+  fill(0, 0);
+  return board;
+}
+
+function hideCells(board, difficulty) {
+  const size = board.length;
+  const attempts = difficulty === 'easy' ? size * 2.5 : size * 4;
+  const puzzle = board.map(row => row.slice());
+  let hidden = 0;
+  while (hidden < attempts) {
+    const r = Math.floor(Math.random() * size);
+    const c = Math.floor(Math.random() * size);
+    if (puzzle[r][c] !== '') {
+      puzzle[r][c] = '';
+      hidden++;
+    }
+  }
+  return puzzle;
+}
+
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+let currentBoard = null;
+let currentSolution = null;
+let currentSize = 9;
+let currentDifficulty = 'easy';
+
+function drawSudoku(name, board, solution, size, showSolution = false) {
+  const cellSize = size === 9 ? 40 : 50;
+  const offsetX = 20;
+  const offsetY = 80;
+  canvas.width = offsetX * 2 + cellSize * size;
+  canvas.height = offsetY + cellSize * size + 60;
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.font = "bold 20px Arial";
+  ctx.fillStyle = "black";
+  ctx.textAlign = "left";
+  ctx.fillText(name, offsetX, 40);
+
+  ctx.fillStyle = "white";
+  ctx.fillRect(offsetX, offsetY, cellSize*size, cellSize*size);
+
+  const blockRowSize = size === 9 ? 3 : 2;
+  const blockColSize = size === 9 ? 3 : 3;
+
+  for(let r=0; r <= size; r++) {
+    ctx.lineWidth = (r % blockRowSize === 0) ? 3 : 1;
+    ctx.beginPath();
+    ctx.moveTo(offsetX, offsetY + r*cellSize);
+    ctx.lineTo(offsetX + cellSize*size, offsetY + r*cellSize);
+    ctx.stroke();
+  }
+  for(let c=0; c <= size; c++) {
+    ctx.lineWidth = (c % blockColSize === 0) ? 3 : 1;
+    ctx.beginPath();
+    ctx.moveTo(offsetX + c*cellSize, offsetY);
+    ctx.lineTo(offsetX + c*cellSize, offsetY + cellSize*size);
+    ctx.stroke();
+  }
+
+  ctx.font = size === 9 ? "bold 24px Arial" : "bold 28px Arial";
+  ctx.fillStyle = "black";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+
+  for(let r=0; r < size; r++) {
+    for(let c=0; c < size; c++) {
+      let val = showSolution ? solution[r][c] : board[r][c];
+      if(val !== '') {
+        ctx.fillText(val, offsetX + c*cellSize + cellSize/2, offsetY + r*cellSize + cellSize/2);
+      }
+    }
+  }
+
+  if(showSolution) {
     ctx.font = "italic 16px Arial";
     ctx.textAlign = "center";
-    if(showSolution) {
-      ctx.fillText("Rozwiązanie", offsetX + cellSize*size/2, offsetY + cellSize*size + 30);
-    }
+    ctx.fillText("Rozwiązanie", offsetX + cellSize*size/2, offsetY + cellSize*size + 30);
   }
+}
 
-  function generatePuzzle() {
-    const size = parseInt(document.getElementById('size').value);
-    const difficulty = document.getElementById('difficulty').value;
-    const puzzleNameInput = document.getElementById('puzzleName');
-    let puzzleName = puzzleNameInput.value.trim();
-    if(!puzzleName) {
-      puzzleName = `${capitalize(difficulty)} ${size}x${size} No.`;
-      puzzleNameInput.value = puzzleName;
-    }
-
-    currentSize = size;
-    currentDifficulty = difficulty;
-    currentBoard = puzzles[size][difficulty].board;
-    currentSolution = puzzles[size][difficulty].solution;
-
-    drawSudoku(puzzleName, currentBoard, currentSolution, size, false);
+function generatePuzzle() {
+  const size = parseInt(document.getElementById('size').value);
+  const difficulty = document.getElementById('difficulty').value;
+  const puzzleNameInput = document.getElementById('puzzleName');
+  let puzzleName = puzzleNameInput.value.trim();
+  if(!puzzleName) {
+    puzzleName = `${difficulty.charAt(0).toUpperCase() + difficulty.slice(1)} ${size}x${size}`;
+    puzzleNameInput.value = puzzleName;
   }
+  currentSize = size;
+  currentDifficulty = difficulty;
+  currentSolution = generateFullBoard(size);
+  currentBoard = hideCells(currentSolution, difficulty);
+  drawSudoku(puzzleName, currentBoard, currentSolution, size, false);
+}
 
-  function showAnswer() {
-    if(!currentSolution) return;
-    const puzzleName = document.getElementById('puzzleName').value.trim() || `${capitalize(currentDifficulty)} ${currentSize}x${currentSize} No.`;
-    drawSudoku(puzzleName, currentBoard, currentSolution, currentSize, true);
+function showAnswer() {
+  if(!currentSolution) return;
+  const puzzleName = document.getElementById('puzzleName').value.trim();
+  drawSudoku(puzzleName, currentBoard, currentSolution, currentSize, true);
+}
+
+async function copyCanvasImage() {
+  try {
+    canvas.toBlob(async (blob) => {
+      await navigator.clipboard.write([
+        new ClipboardItem({'image/png': blob})
+      ]);
+      alert('Obraz Sudoku skopiowany do schowka! Możesz wkleić go np. do Canvy.');
+    });
+  } catch(e) {
+    alert('Twoja przeglądarka nie wspiera kopiowania obrazów do schowka.');
   }
+}
 
-  async function copyCanvasImage() {
-    try {
-      canvas.toBlob(async (blob) => {
-        try {
-          await navigator.clipboard.write([
-            new ClipboardItem({'image/png': blob})
-          ]);
-          alert('Obraz Sudoku skopiowany do schowka! Możesz wkleić go np. do Canvy.');
-        } catch(e) {
-          alert('Błąd kopiowania do schowka: ' + e);
-        }
-      });
-    } catch(e) {
-      alert('Twoja przeglądarka nie wspiera kopiowania obrazów do schowka.');
-    }
-  }
+document.getElementById('generateBtn').addEventListener('click', generatePuzzle);
+document.getElementById('showAnswerBtn').addEventListener('click', showAnswer);
+document.getElementById('copyBtn').addEventListener('click', copyCanvasImage);
 
-  document.getElementById('generateBtn').addEventListener('click', generatePuzzle);
-  document.getElementById('showAnswerBtn').addEventListener('click', showAnswer);
-  document.getElementById('copyBtn').addEventListener('click', copyCanvasImage);
-
-  // Na start generujemy planszę domyślną
-  generatePuzzle();
+generatePuzzle();
 </script>
-
 </body>
 </html>
