@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sudoku Generator</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; background: #f8f8f8; }
+    h1 { text-align: center; }
+    .controls { margin-bottom: 20px; text-align: center; }
+    .sudoku-board { display: grid; gap: 2px; margin: 0 auto; }
+    .cell { width: 40px; height: 40px; text-align: center; font-size: 18px; border: 1px solid #ccc; background: white; }
+    .output { margin-top: 20px; text-align: center; }
+    button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>Sudoku Generator</h1>
+  <div class="controls">
+    <label>
+      Size:
+      <select id="size">
+        <option value="6">6x6</option>
+        <option value="9" selected>9x9</option>
+      </select>
+    </label>
+    <label>
+      Difficulty:
+      <select id="difficulty">
+        <option value="easy">Easy</option>
+        <option value="medium">Medium</option>
+      </select>
+    </label>
+    <button onclick="generateSudoku()">Generate Sudoku</button>
+  </div>
+
+  <div id="board" class="sudoku-board"></div>
+
+  <script>
+    function generateSudoku() {
+      const size = parseInt(document.getElementById('size').value);
+      const difficulty = document.getElementById('difficulty').value;
+
+      const board = generateFullBoard(size);
+      const puzzle = removeNumbers(board, difficulty);
+      renderBoard(puzzle, size);
+    }
+
+    function generateFullBoard(size) {
+      const board = Array.from({ length: size }, () => Array(size).fill(0));
+      solveSudoku(board, size);
+      return board;
+    }
+
+    function solveSudoku(board, size) {
+      const nums = [...Array(size)].map((_, i) => i + 1);
+
+      function isValid(r, c, n) {
+        const blockSize = Math.floor(Math.sqrt(size));
+        for (let i = 0; i < size; i++) {
+          if (board[r][i] === n || board[i][c] === n) return false;
+        }
+        const rowStart = r - r % blockSize;
+        const colStart = c - c % blockSize;
+        for (let i = 0; i < blockSize; i++) {
+          for (let j = 0; j < blockSize; j++) {
+            if (board[rowStart + i][colStart + j] === n) return false;
+          }
+        }
+        return true;
+      }
+
+      function solveCell(row, col) {
+        if (row === size) return true;
+        const nextRow = col === size - 1 ? row + 1 : row;
+        const nextCol = col === size - 1 ? 0 : col + 1;
+
+        const shuffled = nums.sort(() => Math.random() - 0.5);
+        for (const num of shuffled) {
+          if (isValid(row, col, num)) {
+            board[row][col] = num;
+            if (solveCell(nextRow, nextCol)) return true;
+            board[row][col] = 0;
+          }
+        }
+        return false;
+      }
+
+      solveCell(0, 0);
+      return true;
+    }
+
+    function removeNumbers(board, difficulty) {
+      const size = board.length;
+      const newBoard = board.map(row => row.slice());
+      let removeCount = difficulty === 'easy' ? Math.floor(size * size * 0.4) : Math.floor(size * size * 0.6);
+
+      while (removeCount > 0) {
+        const r = Math.floor(Math.random() * size);
+        const c = Math.floor(Math.random() * size);
+        if (newBoard[r][c] !== '') {
+          newBoard[r][c] = '';
+          removeCount--;
+        }
+      }
+
+      return newBoard;
+    }
+
+    function renderBoard(board, size) {
+      const boardDiv = document.getElementById('board');
+      boardDiv.innerHTML = '';
+      boardDiv.style.gridTemplateColumns = `repeat(${size}, 40px)`;
+      boardDiv.style.gridTemplateRows = `repeat(${size}, 40px)`;
+      board.forEach(row => {
+        row.forEach(cell => {
+          const input = document.createElement('input');
+          input.className = 'cell';
+          input.disabled = cell !== '';
+          input.value = cell;
+          boardDiv.appendChild(input);
+        });
+      });
+    }
+
+    // Auto generate on load
+    generateSudoku();
+  </script>
+</body>
+</html>
