@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>PNG Obszary do zachowania - Generator</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+    text-align: center;
+  }
+  #canvas {
+    border: 2px solid black;
+    cursor: crosshair;
+  }
+  #selectedList {
+    margin-top: 15px;
+    text-align: left;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  #clearBtn {
+    margin-top: 10px;
+  }
+</style>
+</head>
+<body>
+
+<h2>Wczytaj obraz PNG i zaznacz obszary do zachowania</h2>
+<input type="file" id="fileInput" accept="image/png" />
+
+<br/><br/>
+<canvas id="canvas" width="600" height="400"></canvas>
+
+<div id="selectedList">
+  <h3>Zaznaczone obszary (w pikselach):</h3>
+  <ul id="areas"></ul>
+  <button id="clearBtn">Wyczyść zaznaczenia</button>
+</div>
+
+<script>
+const fileInput = document.getElementById('fileInput');
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const areasList = document.getElementById('areas');
+const clearBtn = document.getElementById('clearBtn');
+
+let img = new Image();
+let imgLoaded = false;
+let startX, startY, isDrawing = false;
+let selectedAreas = [];
+
+function drawImageWithMask() {
+  if (!imgLoaded) return;
+  
+  // Najpierw rysujemy obraz normalnie
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  
+  // Następnie maskujemy cały obraz na półprzezroczysto szaro
+  ctx.fillStyle = 'rgba(200, 200, 200, 0.7)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  // Teraz „wycinamy” zaznaczone obszary - kopiujemy oryginalne fragmenty
+  selectedAreas.forEach(area => {
+    // Kopiujemy fragment z obrazu
+    ctx.clearRect(area.x, area.y, area.w, area.h);
+    ctx.drawImage(img, 
+      area.sx, area.sy, area.sw, area.sh,
+      area.x, area.y, area.w, area.h
+    );
+    
+    // Opcjonalnie rysujemy ramkę wokół zaznaczenia
+    ctx.strokeStyle = 'red';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(area.x, area.y, area.w, area.h);
+  });
+}
+
+function addArea(x1, y1, x2, y2) {
+  // Zapewniamy, że x,y to lewy górny narożnik
+  const x = Math.min(x1, x2);
+  const y = Math.min(y1, y2);
+  const w = Math.abs(x2 - x1);
+  const h = Math.abs(y2 - y1);
+  
+  // Dodajemy do listy zaznaczeń
+  selectedAreas.push({x, y, w, h, sx: x * (img.width / canvas.width), sy: y * (img.height / canvas.height), sw: w * (img.width / canvas.width), sh: h * (img.height / canvas.height)});
+  
+  updateAreasList();
+  drawImageWithMask();
+}
+
+function updateAreasList() {
+  areasList.innerHTML = '';
+  selectedAreas.forEach((area, i) => {
+    const li = document.createElement('li');
+    li.textContent = `Pole ${i+1}: x=${Math.round(area.sx)}, y=${Math.round(area.sy)}, szer=${Math.round(area.sw)}, wys=${Math.round(area.sh)}`;
+    areasList.appendChild(li);
+  });
+}
+
+fileInput.addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(event) {
+    img.onload = () => {
+      imgLoaded = true;
+      drawImageWithMask();
+    };
+    img.src = event.target.result;
+  };
+  reader.readAsDataURL(file);
+});
+
+canvas.addEventListener('mousedown', e => {
+  if (!imgLoaded) return;
+  startX = e.offsetX;
+  startY = e.offsetY;
+  isDrawing = true;
+});
+
+canvas.addEventListener('mousemove', e => {
+  if (!isDrawing) return;
+  drawImageWithMask();
+  const currentX = e.offsetX;
+  const currentY = e.offsetY;
+  
+  // Rysujemy prostokąt selekcji
+  ctx.strokeStyle = 'blue';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([6]);
+  ctx.strokeRect(startX, startY, currentX - startX, currentY - startY);
+  ctx.setLineDash([]);
+});
+
+canvas.addEventListener('mouseup', e => {
+  if (!isDrawing) return;
+  isDrawing = false;
+  const endX = e.offsetX;
+  const endY = e.offsetY;
+  addArea(startX, startY, endX, endY);
+});
+
+clearBtn.addEventListener('click', () => {
+  selectedAreas = [];
+  updateAreasList();
+  drawImageWithMask();
+});
+</script>
+
+</body>
+</html>
