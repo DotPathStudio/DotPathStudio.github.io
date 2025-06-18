@@ -3,153 +3,115 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>PNG Obszary do zachowania - Generator</title>
+<title>Prosty Generator Połącz Kropki</title>
 <style>
   body {
     font-family: Arial, sans-serif;
-    margin: 20px;
     text-align: center;
   }
-  #canvas {
-    border: 2px solid black;
-    cursor: crosshair;
+  canvas {
+    border: 1px solid #000;
+    margin-top: 20px;
   }
-  #selectedList {
-    margin-top: 15px;
-    text-align: left;
-    max-width: 600px;
-    margin-left: auto;
-    margin-right: auto;
-  }
-  #clearBtn {
+  #instructions {
     margin-top: 10px;
   }
 </style>
 </head>
 <body>
 
-<h2>Wczytaj obraz PNG i zaznacz obszary do zachowania</h2>
-<input type="file" id="fileInput" accept="image/png" />
-
-<br/><br/>
-<canvas id="canvas" width="600" height="400"></canvas>
-
-<div id="selectedList">
-  <h3>Zaznaczone obszary (w pikselach):</h3>
-  <ul id="areas"></ul>
-  <button id="clearBtn">Wyczyść zaznaczenia</button>
-</div>
+<h2>Prosty Generator Połącz Kropki</h2>
+<canvas id="dotCanvas" width="600" height="400"></canvas>
+<div id="instructions">Kliknij na kropkę, potem na kolejną, aby narysować linię.</div>
+<button id="resetBtn">Resetuj połączenia</button>
 
 <script>
-const fileInput = document.getElementById('fileInput');
-const canvas = document.getElementById('canvas');
+const canvas = document.getElementById('dotCanvas');
 const ctx = canvas.getContext('2d');
-const areasList = document.getElementById('areas');
-const clearBtn = document.getElementById('clearBtn');
 
-let img = new Image();
-let imgLoaded = false;
-let startX, startY, isDrawing = false;
-let selectedAreas = [];
+const points = [
+  {x: 100, y: 100},
+  {x: 200, y: 80},
+  {x: 300, y: 150},
+  {x: 400, y: 120},
+  {x: 500, y: 200},
+  {x: 450, y: 300},
+  {x: 350, y: 320},
+  {x: 250, y: 280},
+  {x: 150, y: 350}
+];
 
-function drawImageWithMask() {
-  if (!imgLoaded) return;
-  
-  // Najpierw rysujemy obraz normalnie
+const radius = 10;
+let selectedPoint = null;
+let lines = [];
+
+function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
   
-  // Następnie maskujemy cały obraz na półprzezroczysto szaro
-  ctx.fillStyle = 'rgba(200, 200, 200, 0.7)';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  
-  // Teraz „wycinamy” zaznaczone obszary - kopiujemy oryginalne fragmenty
-  selectedAreas.forEach(area => {
-    // Kopiujemy fragment z obrazu
-    ctx.clearRect(area.x, area.y, area.w, area.h);
-    ctx.drawImage(img, 
-      area.sx, area.sy, area.sw, area.sh,
-      area.x, area.y, area.w, area.h
-    );
-    
-    // Opcjonalnie rysujemy ramkę wokół zaznaczenia
-    ctx.strokeStyle = 'red';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(area.x, area.y, area.w, area.h);
-  });
-}
-
-function addArea(x1, y1, x2, y2) {
-  // Zapewniamy, że x,y to lewy górny narożnik
-  const x = Math.min(x1, x2);
-  const y = Math.min(y1, y2);
-  const w = Math.abs(x2 - x1);
-  const h = Math.abs(y2 - y1);
-  
-  // Dodajemy do listy zaznaczeń
-  selectedAreas.push({x, y, w, h, sx: x * (img.width / canvas.width), sy: y * (img.height / canvas.height), sw: w * (img.width / canvas.width), sh: h * (img.height / canvas.height)});
-  
-  updateAreasList();
-  drawImageWithMask();
-}
-
-function updateAreasList() {
-  areasList.innerHTML = '';
-  selectedAreas.forEach((area, i) => {
-    const li = document.createElement('li');
-    li.textContent = `Pole ${i+1}: x=${Math.round(area.sx)}, y=${Math.round(area.sy)}, szer=${Math.round(area.sw)}, wys=${Math.round(area.sh)}`;
-    areasList.appendChild(li);
-  });
-}
-
-fileInput.addEventListener('change', e => {
-  const file = e.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = function(event) {
-    img.onload = () => {
-      imgLoaded = true;
-      drawImageWithMask();
-    };
-    img.src = event.target.result;
-  };
-  reader.readAsDataURL(file);
-});
-
-canvas.addEventListener('mousedown', e => {
-  if (!imgLoaded) return;
-  startX = e.offsetX;
-  startY = e.offsetY;
-  isDrawing = true;
-});
-
-canvas.addEventListener('mousemove', e => {
-  if (!isDrawing) return;
-  drawImageWithMask();
-  const currentX = e.offsetX;
-  const currentY = e.offsetY;
-  
-  // Rysujemy prostokąt selekcji
+  // Rysuj linie
   ctx.strokeStyle = 'blue';
   ctx.lineWidth = 2;
-  ctx.setLineDash([6]);
-  ctx.strokeRect(startX, startY, currentX - startX, currentY - startY);
-  ctx.setLineDash([]);
+  lines.forEach(line => {
+    ctx.beginPath();
+    ctx.moveTo(points[line[0]].x, points[line[0]].y);
+    ctx.lineTo(points[line[1]].x, points[line[1]].y);
+    ctx.stroke();
+  });
+
+  // Rysuj kropki
+  points.forEach((p, i) => {
+    ctx.beginPath();
+    ctx.fillStyle = (selectedPoint === i) ? 'red' : 'black';
+    ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = 'white';
+    ctx.font = 'bold 14px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(i + 1, p.x, p.y);
+  });
+}
+
+function getClickedPoint(x, y) {
+  return points.findIndex(p => {
+    const dx = p.x - x;
+    const dy = p.y - y;
+    return Math.sqrt(dx*dx + dy*dy) <= radius;
+  });
+}
+
+canvas.addEventListener('click', e => {
+  const rect = canvas.getBoundingClientRect();
+  const clickX = e.clientX - rect.left;
+  const clickY = e.clientY - rect.top;
+  const clickedIndex = getClickedPoint(clickX, clickY);
+  if (clickedIndex === -1) return;
+
+  if (selectedPoint === null) {
+    selectedPoint = clickedIndex;
+  } else {
+    if (selectedPoint !== clickedIndex) {
+      // Dodaj linię jeśli jeszcze nie istnieje
+      const lineExists = lines.some(l => 
+        (l[0] === selectedPoint && l[1] === clickedIndex) || 
+        (l[1] === selectedPoint && l[0] === clickedIndex)
+      );
+      if (!lineExists) {
+        lines.push([selectedPoint, clickedIndex]);
+      }
+    }
+    selectedPoint = null;
+  }
+  draw();
 });
 
-canvas.addEventListener('mouseup', e => {
-  if (!isDrawing) return;
-  isDrawing = false;
-  const endX = e.offsetX;
-  const endY = e.offsetY;
-  addArea(startX, startY, endX, endY);
+document.getElementById('resetBtn').addEventListener('click', () => {
+  lines = [];
+  selectedPoint = null;
+  draw();
 });
 
-clearBtn.addEventListener('click', () => {
-  selectedAreas = [];
-  updateAreasList();
-  drawImageWithMask();
-});
+draw();
 </script>
 
 </body>
