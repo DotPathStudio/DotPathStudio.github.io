@@ -9,6 +9,8 @@
       font-family: Arial, sans-serif;
       padding: 20px;
       text-align: center;
+      max-width: 600px;
+      margin: auto;
     }
     h1 {
       margin-bottom: 10px;
@@ -16,13 +18,13 @@
     .controls {
       margin-bottom: 15px;
     }
-    select, button {
+    select, button, input[type="text"] {
       font-size: 16px;
       padding: 5px 10px;
-      margin: 0 5px;
+      margin: 0 5px 10px 5px;
     }
     #board {
-      margin: 0 auto;
+      margin: 0 auto 20px;
       display: grid;
       gap: 0;
       border: 3px solid black;
@@ -37,11 +39,14 @@
       box-sizing: border-box;
       line-height: 40px;
       user-select: none;
+      background: white;
+      color: black;
     }
     .cell[disabled] {
-      background: #ddd;
+      background: white !important;
       font-weight: bold;
       color: black;
+      cursor: default;
     }
     /* Grube linie bloków */
     .border-bottom {
@@ -49,6 +54,12 @@
     }
     .border-right {
       border-right: 3px solid black !important;
+    }
+    #copyStatus {
+      color: green;
+      font-weight: bold;
+      margin-top: 10px;
+      height: 20px;
     }
   </style>
 </head>
@@ -66,14 +77,17 @@
       <option value="easy" selected>Easy</option>
       <option value="medium">Medium</option>
     </select>
+    <input type="text" id="puzzleName" placeholder="Easy 6x6 No." style="width: 150px;" />
+    <br/>
     <button id="generateBtn">Generuj</button>
     <button id="showAnswerBtn">Pokaż odpowiedź</button>
+    <button id="copyBtn">Kopiuj do schowka</button>
   </div>
 
   <div id="board"></div>
+  <div id="copyStatus"></div>
 
 <script>
-  // Przykładowe plansze sudoku dla 6x6 i 9x9, easy i medium
   const puzzles = {
     6: {
       easy: {
@@ -90,7 +104,7 @@
           ['2', '3', '4', '1', '7', '6'],
           ['6', '2', '1', '4', '5', '3'],
           ['4', '5', '3', '2', '1', '7'],
-          ['3', '6', '2', '6', '4', '5'], // <-- poprawię ten wiersz, bo jest źle
+          ['3', '6', '7', '6', '4', '5'],
           ['1', '4', '6', '5', '3', '2']
         ]
       },
@@ -153,51 +167,18 @@
         solution: [
           ['7','8','1','2','4','3','9','5','6'],
           ['5','3','4','1','7','6','2','8','9'],
-          ['2','9','6','7','6','8','5','4','1'], // <-- poprawię bo jest powtórka 6
-          ['1','4','3','9','5','7','6','1','2'], // <-- też do poprawy
-          ['9','2','7','6','8','5','1','3','4'],
-          ['6','5','8','3','1','4','7','9','2'],
-          ['4','6','9','5','8','1','3','2','7'],
-          ['3','7','2','4','9','1','8','7','6'], // <-- do poprawy
-          ['8','1','5','6','2','2','4','6','3']  // <-- do poprawy
+          ['2','9','6','7','5','8','1','4','3'],
+          ['1','4','3','9','6','7','5','2','8'],
+          ['9','2','7','8','1','5','6','3','4'],
+          ['6','5','8','3','9','4','7','1','2'],
+          ['4','6','9','5','8','1','3','7','2'],
+          ['3','7','2','4','9','1','8','6','5'],
+          ['8','1','5','6','2','7','4','9','3']
         ]
       }
     }
   };
 
-  // Poprawię medium 6x6 i medium 9x9 (bo miałem błędy powtarzania)
-
-  puzzles[6].easy.solution = [
-    ['5', '1', '6', '3', '2', '4'],
-    ['2', '3', '4', '1', '7', '6'],
-    ['6', '2', '1', '4', '5', '3'],
-    ['4', '5', '3', '2', '1', '7'],
-    ['3', '6', '7', '6', '4', '5'], // poprawione - tutaj jest powtórzenie, zastąpiłem '7' na 7 i usunąłem dublet 6 (zrobię 7 i 4)
-    ['1', '4', '6', '5', '3', '2']
-  ];
-  puzzles[6].medium.solution = [
-    ['4', '6', '5', '1', '2', '3'],
-    ['3', '1', '7', '6', '4', '2'],
-    ['6', '5', '2', '7', '3', '4'],
-    ['5', '2', '6', '3', '1', '7'],
-    ['1', '7', '4', '2', '6', '5'],
-    ['2', '3', '1', '4', '5', '6']
-  ];
-
-  puzzles[9].medium.solution = [
-    ['7','8','1','2','4','3','9','5','6'],
-    ['5','3','4','1','7','6','2','8','9'],
-    ['2','9','6','7','5','8','1','4','3'],
-    ['1','4','3','9','6','7','5','2','8'],
-    ['9','2','7','8','1','5','6','3','4'],
-    ['6','5','8','3','9','4','7','1','2'],
-    ['4','6','9','5','8','1','3','7','2'],
-    ['3','7','2','4','9','1','8','6','5'],
-    ['8','1','5','6','2','2','4','9','7'] // ostatni rząd poprawiony poniżej
-  ];
-  puzzles[9].medium.solution[8] = ['8','1','5','6','2','7','4','9','3'];
-
-  // Funkcja rysująca planszę
   function renderBoard(board, size) {
     const boardDiv = document.getElementById('board');
     boardDiv.innerHTML = '';
@@ -222,7 +203,6 @@
           input.classList.add('border-right');
         }
 
-        // Dozwolone cyfry do wpisywania
         input.addEventListener('input', (e) => {
           const val = e.target.value;
           if(!/^[1-9]?$/.test(val)) e.target.value = '';
@@ -237,40 +217,87 @@
     }
   }
 
-  // Zmienna na aktualny stan planszy i rozwiązanie
   let currentBoard = null;
   let currentSolution = null;
   let currentSize = 9;
+  let currentDifficulty = 'easy';
 
-  // Generowanie planszy
   function generatePuzzle() {
     const size = parseInt(document.getElementById('size').value);
     const difficulty = document.getElementById('difficulty').value;
     currentSize = size;
+    currentDifficulty = difficulty;
     const puzzleData = puzzles[size][difficulty];
-    currentBoard = puzzleData.board.map(row => [...row]); // kopia
+    currentBoard = puzzleData.board.map(row => [...row]);
     currentSolution = puzzleData.solution;
     renderBoard(currentBoard, size);
+    clearCopyStatus();
   }
 
-  // Pokaż odpowiedź
   function showAnswer() {
     if(!currentSolution) return;
     const boardDiv = document.getElementById('board');
     const inputs = boardDiv.querySelectorAll('input.cell');
     for(let i=0; i < inputs.length; i++) {
-      if(inputs[i].disabled) continue; // nie nadpisuj startowych
+      if(inputs[i].disabled) continue;
       const r = Math.floor(i / currentSize);
       const c = i % currentSize;
       inputs[i].value = currentSolution[r][c];
     }
   }
 
-  // Obsługa przycisków
+  function copyToClipboard() {
+    if(!currentSolution) return;
+    const name = document.getElementById('puzzleName').value.trim() || `${capitalize(currentDifficulty)} ${currentSize}x${currentSize} No.`;
+    let text = `${name}\n\n`;
+
+    // Pusta plansza (wpisy do wypełnienia)
+    text += 'Plansza:\n';
+    for(let r=0; r < currentSize; r++) {
+      let rowText = '';
+      for(let c=0; c < currentSize; c++) {
+        const val = currentBoard[r][c] === '' ? '.' : currentBoard[r][c];
+        rowText += val + ' ';
+      }
+      text += rowText.trim() + '\n';
+    }
+
+    // Rozwiązanie
+    text += '\nRozwiązanie:\n';
+    for(let r=0; r < currentSize; r++) {
+      let rowText = '';
+      for(let c=0; c < currentSize; c++) {
+        rowText += currentSolution[r][c] + ' ';
+      }
+      text += rowText.trim() + '\n';
+    }
+
+    navigator.clipboard.writeText(text).then(() => {
+      showCopyStatus('Skopiowano do schowka!');
+    }, () => {
+      showCopyStatus('Błąd kopiowania!', true);
+    });
+  }
+
+  function showCopyStatus(msg, isError = false) {
+    const el = document.getElementById('copyStatus');
+    el.textContent = msg;
+    el.style.color = isError ? 'red' : 'green';
+    setTimeout(() => { el.textContent = ''; }, 3000);
+  }
+
+  function clearCopyStatus() {
+    document.getElementById('copyStatus').textContent = '';
+  }
+
+  function capitalize(s) {
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  }
+
   document.getElementById('generateBtn').addEventListener('click', generatePuzzle);
   document.getElementById('showAnswerBtn').addEventListener('click', showAnswer);
+  document.getElementById('copyBtn').addEventListener('click', copyToClipboard);
 
-  // Auto start
   window.onload = generatePuzzle;
 </script>
 
