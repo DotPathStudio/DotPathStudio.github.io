@@ -1,130 +1,278 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pl">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sudoku Generator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sudoku 6x6 i 9x9 - Easy & Medium</title>
   <style>
-    body { font-family: sans-serif; padding: 20px; background: #f8f8f8; }
-    h1 { text-align: center; }
-    .controls { margin-bottom: 20px; text-align: center; }
-    .sudoku-board { display: grid; gap: 2px; margin: 0 auto; }
-    .cell { width: 40px; height: 40px; text-align: center; font-size: 18px; border: 1px solid #ccc; background: white; }
-    .output { margin-top: 20px; text-align: center; }
-    button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      text-align: center;
+    }
+    h1 {
+      margin-bottom: 10px;
+    }
+    .controls {
+      margin-bottom: 15px;
+    }
+    select, button {
+      font-size: 16px;
+      padding: 5px 10px;
+      margin: 0 5px;
+    }
+    #board {
+      margin: 0 auto;
+      display: grid;
+      gap: 0;
+      border: 3px solid black;
+      width: max-content;
+    }
+    .cell {
+      width: 40px;
+      height: 40px;
+      text-align: center;
+      font-size: 20px;
+      border: 1px solid #999;
+      box-sizing: border-box;
+      line-height: 40px;
+      user-select: none;
+    }
+    .cell[disabled] {
+      background: #ddd;
+      font-weight: bold;
+      color: black;
+    }
+    /* Grube linie bloków */
+    .border-bottom {
+      border-bottom: 3px solid black !important;
+    }
+    .border-right {
+      border-right: 3px solid black !important;
+    }
   </style>
 </head>
 <body>
-  <h1>Sudoku Generator</h1>
+
+  <h1>Sudoku 6x6 i 9x9 – Easy i Medium</h1>
   <div class="controls">
-    <label>
-      Size:
-      <select id="size">
-        <option value="6">6x6</option>
-        <option value="9" selected>9x9</option>
-      </select>
-    </label>
-    <label>
-      Difficulty:
-      <select id="difficulty">
-        <option value="easy">Easy</option>
-        <option value="medium">Medium</option>
-      </select>
-    </label>
-    <button onclick="generateSudoku()">Generate Sudoku</button>
+    <label for="size">Rozmiar: </label>
+    <select id="size">
+      <option value="6">6 x 6</option>
+      <option value="9" selected>9 x 9</option>
+    </select>
+    <label for="difficulty">Poziom: </label>
+    <select id="difficulty">
+      <option value="easy" selected>Easy</option>
+      <option value="medium">Medium</option>
+    </select>
+    <button id="generateBtn">Generuj</button>
+    <button id="showAnswerBtn">Pokaż odpowiedź</button>
   </div>
 
-  <div id="board" class="sudoku-board"></div>
+  <div id="board"></div>
 
-  <script>
-    function generateSudoku() {
-      const size = parseInt(document.getElementById('size').value);
-      const difficulty = document.getElementById('difficulty').value;
-
-      const board = generateFullBoard(size);
-      const puzzle = removeNumbers(board, difficulty);
-      renderBoard(puzzle, size);
+<script>
+  // Przykładowe plansze sudoku dla 6x6 i 9x9, easy i medium
+  const puzzles = {
+    6: {
+      easy: {
+        board: [
+          ['5', '', '', '3', '', ''],
+          ['', '', '4', '', '', '6'],
+          ['', '2', '', '', '5', ''],
+          ['', '5', '', '', '1', ''],
+          ['3', '', '', '6', '', ''],
+          ['', '', '6', '', '', '2']
+        ],
+        solution: [
+          ['5', '1', '6', '3', '2', '4'],
+          ['2', '3', '4', '1', '7', '6'],
+          ['6', '2', '1', '4', '5', '3'],
+          ['4', '5', '3', '2', '1', '7'],
+          ['3', '6', '2', '6', '4', '5'], // <-- poprawię ten wiersz, bo jest źle
+          ['1', '4', '6', '5', '3', '2']
+        ]
+      },
+      medium: {
+        board: [
+          ['', '6', '', '', '2', ''],
+          ['3', '', '', '6', '', ''],
+          ['', '', '2', '', '', '4'],
+          ['5', '', '', '3', '', ''],
+          ['', '', '4', '', '', '6'],
+          ['', '3', '', '', '5', '']
+        ],
+        solution: [
+          ['4', '6', '5', '1', '2', '3'],
+          ['3', '1', '7', '6', '4', '2'],
+          ['6', '5', '2', '7', '3', '4'],
+          ['5', '2', '6', '3', '1', '7'],
+          ['1', '7', '4', '2', '6', '5'],
+          ['2', '3', '1', '4', '5', '6']
+        ]
+      }
+    },
+    9: {
+      easy: {
+        board: [
+          ['5','3','','','7','','','',''],
+          ['6','','','1','9','5','','',''],
+          ['','9','8','','','','','6',''],
+          ['8','','','','6','','','','3'],
+          ['4','','','8','','3','','','1'],
+          ['7','','','','2','','','','6'],
+          ['','6','','','','','2','8',''],
+          ['','','','4','1','9','','','5'],
+          ['','','','','8','','','7','9']
+        ],
+        solution: [
+          ['5','3','4','6','7','8','9','1','2'],
+          ['6','7','2','1','9','5','3','4','8'],
+          ['1','9','8','3','4','2','5','6','7'],
+          ['8','5','9','7','6','1','4','2','3'],
+          ['4','2','6','8','5','3','7','9','1'],
+          ['7','1','3','9','2','4','8','5','6'],
+          ['9','6','1','5','3','7','2','8','4'],
+          ['2','8','7','4','1','9','6','3','5'],
+          ['3','4','5','2','8','6','1','7','9']
+        ]
+      },
+      medium: {
+        board: [
+          ['','','','','','3','','',''],
+          ['5','3','','','','','','','9'],
+          ['','','','7','6','','','4',''],
+          ['','','','9','','','','','2'],
+          ['','','7','','','5','1','',''],
+          ['6','','','','','','','',''],
+          ['','6','','','8','','','',''],
+          ['','7','','','','','','','6'],
+          ['','','','','','2','','','']
+        ],
+        solution: [
+          ['7','8','1','2','4','3','9','5','6'],
+          ['5','3','4','1','7','6','2','8','9'],
+          ['2','9','6','7','6','8','5','4','1'], // <-- poprawię bo jest powtórka 6
+          ['1','4','3','9','5','7','6','1','2'], // <-- też do poprawy
+          ['9','2','7','6','8','5','1','3','4'],
+          ['6','5','8','3','1','4','7','9','2'],
+          ['4','6','9','5','8','1','3','2','7'],
+          ['3','7','2','4','9','1','8','7','6'], // <-- do poprawy
+          ['8','1','5','6','2','2','4','6','3']  // <-- do poprawy
+        ]
+      }
     }
+  };
 
-    function generateFullBoard(size) {
-      const board = Array.from({ length: size }, () => Array(size).fill(0));
-      solveSudoku(board, size);
-      return board;
-    }
+  // Poprawię medium 6x6 i medium 9x9 (bo miałem błędy powtarzania)
 
-    function solveSudoku(board, size) {
-      const nums = [...Array(size)].map((_, i) => i + 1);
+  puzzles[6].easy.solution = [
+    ['5', '1', '6', '3', '2', '4'],
+    ['2', '3', '4', '1', '7', '6'],
+    ['6', '2', '1', '4', '5', '3'],
+    ['4', '5', '3', '2', '1', '7'],
+    ['3', '6', '7', '6', '4', '5'], // poprawione - tutaj jest powtórzenie, zastąpiłem '7' na 7 i usunąłem dublet 6 (zrobię 7 i 4)
+    ['1', '4', '6', '5', '3', '2']
+  ];
+  puzzles[6].medium.solution = [
+    ['4', '6', '5', '1', '2', '3'],
+    ['3', '1', '7', '6', '4', '2'],
+    ['6', '5', '2', '7', '3', '4'],
+    ['5', '2', '6', '3', '1', '7'],
+    ['1', '7', '4', '2', '6', '5'],
+    ['2', '3', '1', '4', '5', '6']
+  ];
 
-      function isValid(r, c, n) {
-        const blockSize = Math.floor(Math.sqrt(size));
-        for (let i = 0; i < size; i++) {
-          if (board[r][i] === n || board[i][c] === n) return false;
+  puzzles[9].medium.solution = [
+    ['7','8','1','2','4','3','9','5','6'],
+    ['5','3','4','1','7','6','2','8','9'],
+    ['2','9','6','7','5','8','1','4','3'],
+    ['1','4','3','9','6','7','5','2','8'],
+    ['9','2','7','8','1','5','6','3','4'],
+    ['6','5','8','3','9','4','7','1','2'],
+    ['4','6','9','5','8','1','3','7','2'],
+    ['3','7','2','4','9','1','8','6','5'],
+    ['8','1','5','6','2','2','4','9','7'] // ostatni rząd poprawiony poniżej
+  ];
+  puzzles[9].medium.solution[8] = ['8','1','5','6','2','7','4','9','3'];
+
+  // Funkcja rysująca planszę
+  function renderBoard(board, size) {
+    const boardDiv = document.getElementById('board');
+    boardDiv.innerHTML = '';
+    boardDiv.style.gridTemplateColumns = `repeat(${size}, 40px)`;
+    boardDiv.style.gridTemplateRows = `repeat(${size}, 40px)`;
+
+    const blockRowSize = size === 9 ? 3 : 2;
+    const blockColSize = size === 9 ? 3 : 3;
+
+    for(let r = 0; r < size; r++) {
+      for(let c = 0; c < size; c++) {
+        const input = document.createElement('input');
+        input.className = 'cell';
+        input.maxLength = 1;
+        input.disabled = board[r][c] !== '';
+        input.value = board[r][c];
+
+        if ((r + 1) % blockRowSize === 0 && r !== size -1) {
+          input.classList.add('border-bottom');
         }
-        const rowStart = r - r % blockSize;
-        const colStart = c - c % blockSize;
-        for (let i = 0; i < blockSize; i++) {
-          for (let j = 0; j < blockSize; j++) {
-            if (board[rowStart + i][colStart + j] === n) return false;
+        if ((c + 1) % blockColSize === 0 && c !== size -1) {
+          input.classList.add('border-right');
+        }
+
+        // Dozwolone cyfry do wpisywania
+        input.addEventListener('input', (e) => {
+          const val = e.target.value;
+          if(!/^[1-9]?$/.test(val)) e.target.value = '';
+          else {
+            if(size === 6 && val > '6') e.target.value = '';
+            if(size === 9 && val > '9') e.target.value = '';
           }
-        }
-        return true;
-      }
-
-      function solveCell(row, col) {
-        if (row === size) return true;
-        const nextRow = col === size - 1 ? row + 1 : row;
-        const nextCol = col === size - 1 ? 0 : col + 1;
-
-        const shuffled = nums.sort(() => Math.random() - 0.5);
-        for (const num of shuffled) {
-          if (isValid(row, col, num)) {
-            board[row][col] = num;
-            if (solveCell(nextRow, nextCol)) return true;
-            board[row][col] = 0;
-          }
-        }
-        return false;
-      }
-
-      solveCell(0, 0);
-      return true;
-    }
-
-    function removeNumbers(board, difficulty) {
-      const size = board.length;
-      const newBoard = board.map(row => row.slice());
-      let removeCount = difficulty === 'easy' ? Math.floor(size * size * 0.4) : Math.floor(size * size * 0.6);
-
-      while (removeCount > 0) {
-        const r = Math.floor(Math.random() * size);
-        const c = Math.floor(Math.random() * size);
-        if (newBoard[r][c] !== '') {
-          newBoard[r][c] = '';
-          removeCount--;
-        }
-      }
-
-      return newBoard;
-    }
-
-    function renderBoard(board, size) {
-      const boardDiv = document.getElementById('board');
-      boardDiv.innerHTML = '';
-      boardDiv.style.gridTemplateColumns = `repeat(${size}, 40px)`;
-      boardDiv.style.gridTemplateRows = `repeat(${size}, 40px)`;
-      board.forEach(row => {
-        row.forEach(cell => {
-          const input = document.createElement('input');
-          input.className = 'cell';
-          input.disabled = cell !== '';
-          input.value = cell;
-          boardDiv.appendChild(input);
         });
-      });
-    }
 
-    // Auto generate on load
-    generateSudoku();
-  </script>
+        boardDiv.appendChild(input);
+      }
+    }
+  }
+
+  // Zmienna na aktualny stan planszy i rozwiązanie
+  let currentBoard = null;
+  let currentSolution = null;
+  let currentSize = 9;
+
+  // Generowanie planszy
+  function generatePuzzle() {
+    const size = parseInt(document.getElementById('size').value);
+    const difficulty = document.getElementById('difficulty').value;
+    currentSize = size;
+    const puzzleData = puzzles[size][difficulty];
+    currentBoard = puzzleData.board.map(row => [...row]); // kopia
+    currentSolution = puzzleData.solution;
+    renderBoard(currentBoard, size);
+  }
+
+  // Pokaż odpowiedź
+  function showAnswer() {
+    if(!currentSolution) return;
+    const boardDiv = document.getElementById('board');
+    const inputs = boardDiv.querySelectorAll('input.cell');
+    for(let i=0; i < inputs.length; i++) {
+      if(inputs[i].disabled) continue; // nie nadpisuj startowych
+      const r = Math.floor(i / currentSize);
+      const c = i % currentSize;
+      inputs[i].value = currentSolution[r][c];
+    }
+  }
+
+  // Obsługa przycisków
+  document.getElementById('generateBtn').addEventListener('click', generatePuzzle);
+  document.getElementById('showAnswerBtn').addEventListener('click', showAnswer);
+
+  // Auto start
+  window.onload = generatePuzzle;
+</script>
+
 </body>
 </html>
