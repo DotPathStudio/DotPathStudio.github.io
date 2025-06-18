@@ -57,12 +57,12 @@ const puzzles = {
           [0, 6, 5, 3, 0, 0]
         ],
         solution: [
-          [1, 2, 4, 3, 5, 6],
+          [1, 2, 4, 5, 5, 6],
           [3, 5, 6, 2, 1, 4],
           [6, 3, 1, 4, 2, 5],
           [2, 5, 4, 6, 3, 1],
           [4, 1, 2, 5, 6, 3],
-          [5, 6, 3, 3, 4, 2]
+          [5, 6, 5, 3, 4, 2]
         ]
       }
       // Możesz dodać więcej plansz
@@ -192,13 +192,13 @@ function drawSudoku(grid, size, canvasCtx) {
     canvasCtx.stroke();
   }
 
-  // Liczby - bez bold
+  // Liczby - tutaj bez pogrubienia
   canvasCtx.fillStyle = '#000';
   for (let r = 0; r < size; r++) {
     for (let c = 0; c < size; c++) {
       const val = grid[r][c];
       if (val !== 0) {
-        canvasCtx.font = size === 9 ? "24px Arial" : "28px Arial"; // TUTAJ zmiana - bez bold
+        canvasCtx.font = size === 9 ? "24px Arial" : "28px Arial";
         canvasCtx.textAlign = "center";
         canvasCtx.textBaseline = "middle";
         canvasCtx.fillText(val, c * cellSize + cellSize / 2, r * cellSize + cellSize / 2);
