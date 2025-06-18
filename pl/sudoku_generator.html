@@ -47,7 +47,7 @@
 </div>
 
 <div>
-  <input type="text" id="puzzleName" placeholder="Easy 6x6 No. 1" style="width: 180px; margin-top:10px;" />
+  <input type="text" id="puzzleName" placeholder="Easy 6x6 No. 1" style="width: 180px; margin-top:10px;" readonly />
 </div>
 
 <div>
@@ -184,16 +184,14 @@ function generatePuzzle() {
   const size = parseInt(document.getElementById('size').value);
   const difficulty = document.getElementById('difficulty').value;
   const puzzleNameInput = document.getElementById('puzzleName');
-  let puzzleName = puzzleNameInput.value.trim();
-  if(!puzzleName) {
-    puzzleName = `${difficulty.charAt(0).toUpperCase() + difficulty.slice(1)} ${size}x${size}`;
-    puzzleNameInput.value = puzzleName;
-  }
+  const autoName = `${difficulty.charAt(0).toUpperCase() + difficulty.slice(1)} ${size}x${size}`;
+  puzzleNameInput.value = autoName;
+
   currentSize = size;
   currentDifficulty = difficulty;
   currentSolution = generateFullBoard(size);
   currentBoard = hideCells(currentSolution, difficulty);
-  drawSudoku(puzzleName, currentBoard, currentSolution, size, false);
+  drawSudoku(autoName, currentBoard, currentSolution, size, false);
 }
 
 function showAnswer() {
