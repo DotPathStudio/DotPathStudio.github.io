@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Prosty Generator Połącz Kropki</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+  }
+  canvas {
+    border: 1px solid #000;
+    margin-top: 20px;
+  }
+  #instructions {
+    margin-top: 10px;
+  }
+</style>
+</head>
+<body>
+
+<h2>Prosty Generator Połącz Kropki</h2>
+<canvas id="dotCanvas" width="600" height="400"></canvas>
+<div id="instructions">Kliknij na kropkę, potem na kolejną, aby narysować linię.</div>
+<button id="resetBtn">Resetuj połączenia</button>
+
+<script>
+const canvas = document.getElementById('dotCanvas');
+const ctx = canvas.getContext('2d');
+
+const points = [
+  {x: 100, y: 100},
+  {x: 200, y: 80},
+  {x: 300, y: 150},
+  {x: 400, y: 120},
+  {x: 500, y: 200},
+  {x: 450, y: 300},
+  {x: 350, y: 320},
+  {x: 250, y: 280},
+  {x: 150, y: 350}
+];
+
+const radius = 10;
+let selectedPoint = null;
+let lines = [];
+
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  
+  // Rysuj linie
+  ctx.strokeStyle = 'blue';
+  ctx.lineWidth = 2;
+  lines.forEach(line => {
+    ctx.beginPath();
+    ctx.moveTo(points[line[0]].x, points[line[0]].y);
+    ctx.lineTo(points[line[1]].x, points[line[1]].y);
+    ctx.stroke();
+  });
+
+  // Rysuj kropki
+  points.forEach((p, i) => {
+    ctx.beginPath();
+    ctx.fillStyle = (selectedPoint === i) ? 'red' : 'black';
+    ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = 'white';
+    ctx.font = 'bold 14px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(i + 1, p.x, p.y);
+  });
+}
+
+function getClickedPoint(x, y) {
+  return points.findIndex(p => {
+    const dx = p.x - x;
+    const dy = p.y - y;
+    return Math.sqrt(dx*dx + dy*dy) <= radius;
+  });
+}
+
+canvas.addEventListener('click', e => {
+  const rect = canvas.getBoundingClientRect();
+  const clickX = e.clientX - rect.left;
+  const clickY = e.clientY - rect.top;
+  const clickedIndex = getClickedPoint(clickX, clickY);
+  if (clickedIndex === -1) return;
+
+  if (selectedPoint === null) {
+    selectedPoint = clickedIndex;
+  } else {
+    if (selectedPoint !== clickedIndex) {
+      // Dodaj linię jeśli jeszcze nie istnieje
+      const lineExists = lines.some(l => 
+        (l[0] === selectedPoint && l[1] === clickedIndex) || 
+        (l[1] === selectedPoint && l[0] === clickedIndex)
+      );
+      if (!lineExists) {
+        lines.push([selectedPoint, clickedIndex]);
+      }
+    }
+    selectedPoint = null;
+  }
+  draw();
+});
+
+document.getElementById('resetBtn').addEventListener('click', () => {
+  lines = [];
+  selectedPoint = null;
+  draw();
+});
+
+draw();
+</script>
+
+</body>
+</html>

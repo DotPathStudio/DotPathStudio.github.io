@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Sudoku 6x6 i 9x9 - Easy i Medium</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+  }
+  canvas {
+    border: 2px solid #000;
+    margin-top: 10px;
+  }
+  select, button {
+    font-size: 16px;
+    margin: 5px;
+  }
+</style>
+</head>
+<body>
+
+<h2>Generator Sudoku 6x6 i 9x9 - Easy i Medium</h2>
+
+<label for="size">Wybierz rozmiar:</label>
+<select id="size">
+  <option value="6">6x6</option>
+  <option value="9" selected>9x9</option>
+</select>
+
+<label for="difficulty">Wybierz poziom:</label>
+<select id="difficulty">
+  <option value="easy" selected>Easy</option>
+  <option value="medium">Medium</option>
+</select>
+
+<button id="generateBtn">Generuj planszę</button>
+
+<h3 id="title"></h3>
+<canvas id="sudokuCanvas" width="450" height="450"></canvas>
+
+<h3>Rozwiązanie</h3>
+<canvas id="solutionCanvas" width="450" height="450"></canvas>
+
+<script>
+const puzzles = {
+  "6": {
+    easy: [
+      {
+        puzzle: [
+          [0, 2, 0, 0, 5, 6],
+          [3, 0, 6, 0, 0, 4],
+          [6, 0, 1, 4, 0, 0],
+          [0, 5, 0, 6, 3, 0],
+          [4, 0, 0, 0, 6, 3],
+          [0, 6, 5, 3, 0, 0]
+        ],
+        solution: [
+          [1, 2, 4, 5, 5, 6],
+          [3, 5, 6, 2, 1, 4],
+          [6, 3, 1, 4, 2, 5],
+          [2, 5, 4, 6, 3, 1],
+          [4, 1, 2, 5, 6, 3],
+          [5, 6, 5, 3, 4, 2]
+        ]
+      }
+      // Możesz dodać więcej plansz
+    ],
+    medium: [
+      {
+        puzzle: [
+          [0, 0, 5, 0, 4, 0],
+          [4, 0, 0, 5, 0, 0],
+          [0, 6, 0, 0, 1, 0],
+          [0, 1, 0, 0, 6, 0],
+          [0, 0, 1, 0, 0, 3],
+          [0, 5, 0, 6, 0, 0]
+        ],
+        solution: [
+          [3, 2, 5, 1, 4, 6],
+          [4, 1, 6, 5, 3, 2],
+          [2, 6, 3, 4, 1, 5],
+          [5, 1, 4, 3, 6, 2],
+          [6, 4, 1, 2, 5, 3],
+          [1, 5, 2, 6, 4, 3]
+        ]
+      }
+      // Możesz dodać więcej plansz
+    ]
+  },
+  "9": {
+    easy: [
+      {
+        puzzle: [
+          [5,3,0,0,7,0,0,0,0],
+          [6,0,0,1,9,5,0,0,0],
+          [0,9,8,0,0,0,0,6,0],
+          [8,0,0,0,6,0,0,0,3],
+          [4,0,0,8,0,3,0,0,1],
+          [7,0,0,0,2,0,0,0,6],
+          [0,6,0,0,0,0,2,8,0],
+          [0,0,0,4,1,9,0,0,5],
+          [0,0,0,0,8,0,0,7,9]
+        ],
+        solution: [
+          [5,3,4,6,7,8,9,1,2],
+          [6,7,2,1,9,5,3,4,8],
+          [1,9,8,3,4,2,5,6,7],
+          [8,5,9,7,6,1,4,2,3],
+          [4,2,6,8,5,3,7,9,1],
+          [7,1,3,9,2,4,8,5,6],
+          [9,6,1,5,3,7,2,8,4],
+          [2,8,7,4,1,9,6,3,5],
+          [3,4,5,2,8,6,1,7,9]
+        ]
+      }
+      // Możesz dodać więcej plansz
+    ],
+    medium: [
+      {
+        puzzle: [
+          [0,0,0,2,6,0,7,0,1],
+          [6,8,0,0,7,0,0,9,0],
+          [1,9,0,0,0,4,5,0,0],
+          [8,2,0,1,0,0,0,4,0],
+          [0,0,4,6,0,2,9,0,0],
+          [0,5,0,0,0,3,0,2,8],
+          [0,0,9,3,0,0,0,7,4],
+          [0,4,0,0,5,0,0,3,6],
+          [7,0,3,0,1,8,0,0,0]
+        ],
+        solution: [
+          [4,3,5,2,6,9,7,8,1],
+          [6,8,2,5,7,1,4,9,3],
+          [1,9,7,8,3,4,5,6,2],
+          [8,2,6,1,9,5,3,4,7],
+          [3,7,4,6,8,2,9,1,5],
+          [9,5,1,7,4,3,6,2,8],
+          [5,1,9,3,2,6,8,7,4],
+          [2,4,8,9,5,7,1,3,6],
+          [7,6,3,4,1,8,2,5,9]
+        ]
+      }
+      // Możesz dodać więcej plansz
+    ]
+  }
+};
+
+const canvas = document.getElementById('sudokuCanvas');
+const ctx = canvas.getContext('2d');
+const solutionCanvas = document.getElementById('solutionCanvas');
+const solutionCtx = solutionCanvas.getContext('2d');
+const sizeSelect = document.getElementById('size');
+const diffSelect = document.getElementById('difficulty');
+const generateBtn = document.getElementById('generateBtn');
+const titleH3 = document.getElementById('title');
+
+let currentPuzzle = null;
+
+function drawSudoku(grid, size, canvasCtx) {
+  const cellSize = canvas.width / size;
+  canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
+  canvasCtx.lineWidth = 1;
+  canvasCtx.strokeStyle = '#000';
+
+  // Siatka
+  for (let i = 0; i <= size; i++) {
+    canvasCtx.beginPath();
+    canvasCtx.moveTo(i * cellSize, 0);
+    canvasCtx.lineTo(i * cellSize, canvas.height);
+    canvasCtx.stroke();
+
+    canvasCtx.beginPath();
+    canvasCtx.moveTo(0, i * cellSize);
+    canvasCtx.lineTo(canvas.width, i * cellSize);
+    canvasCtx.stroke();
+  }
+
+  // Grubsze linie (bloki)
+  const blockSize = size === 9 ? 3 : 2;
+  canvasCtx.lineWidth = 3;
+  for (let i = 0; i <= size; i += blockSize) {
+    canvasCtx.beginPath();
+    canvasCtx.moveTo(i * cellSize, 0);
+    canvasCtx.lineTo(i * cellSize, canvas.height);
+    canvasCtx.stroke();
+
+    canvasCtx.beginPath();
+    canvasCtx.moveTo(0, i * cellSize);
+    canvasCtx.lineTo(canvas.width, i * cellSize);
+    canvasCtx.stroke();
+  }
+
+  // Liczby - tutaj bez pogrubienia
+  canvasCtx.fillStyle = '#000';
+  for (let r = 0; r < size; r++) {
+    for (let c = 0; c < size; c++) {
+      const val = grid[r][c];
+      if (val !== 0) {
+        canvasCtx.font = size === 9 ? "24px Arial" : "28px Arial";
+        canvasCtx.textAlign = "center";
+        canvasCtx.textBaseline = "middle";
+        canvasCtx.fillText(val, c * cellSize + cellSize / 2, r * cellSize + cellSize / 2);
+      }
+    }
+  }
+}
+
+function generatePuzzle() {
+  const size = sizeSelect.value;
+  const difficulty = diffSelect.value;
+  const pool = puzzles[size][difficulty];
+  const randomIndex = Math.floor(Math.random() * pool.length);
+  currentPuzzle = pool[randomIndex];
+  titleH3.textContent = `${difficulty.charAt(0).toUpperCase() + difficulty.slice(1)} ${size}x${size}`;
+  drawSudoku(currentPuzzle.puzzle, parseInt(size), ctx);
+  drawSudoku(currentPuzzle.solution, parseInt(size), solutionCtx);
+}
+
+generateBtn.addEventListener('click', generatePuzzle);
+
+// Generujemy pierwszą planszę przy załadowaniu strony
+generatePuzzle();
+
+</script>
+
+</body>
+</html>
